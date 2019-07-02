@@ -1,0 +1,21 @@
+facebook:
+  http:
+    host: "www.facebook.com"
+    port: "443"
+    path: "/"
+twitter:
+  http:
+    host: "www.twitter.com"
+    port: "443"
+    path: "/login"
+football:
+  http:
+    host: "www.espn.in"
+    port: "443"
+    path: "/football"
+
+cricket:
+  http:
+    host: "www.cricbuzz.com"
+    port: "443"
+    path: "/"

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="e287cda2-e2c1-46d7-b159-63f9af00168a" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="5886a775-5f33-4056-900f-254bc7abb941" >
+		<http:request-connection protocol="HTTPS" host="#[vars.httpHost]" port="443" />
+	</http:request-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="4bbfeac2-6d95-4199-94a7-e342e608de4d" file="dev-property.yaml" />
+	<flow name="source-apiFlow" doc:id="a319056f-61d0-4b0b-93bc-187311df6e6d" >
+		<http:listener doc:name="Listener" doc:id="eadeabfb-c1c8-4e3b-a0d9-296160a0bc56" config-ref="HTTP_Listener_config" path="/{targetSite}"/>
+		<flow-ref doc:name="impl-apiFlow" doc:id="3bb2d70b-992e-4548-8f39-393f6598d3a4" name="impl-apiFlow"/>
+	</flow>
+	<flow name="impl-apiFlow" doc:id="b9415e8b-6bd3-4025-80ab-f33a187f904f" >
+		<logger level="INFO" doc:name="Start Logger" doc:id="21673ec5-30e8-4096-8cbe-e61d0ef4ab0d" message="Start Logger || Process completed"/>
+		<ee:transform doc:name="setting property key" doc:id="5070a019-cad3-43f8-b1b4-c9146b932fec" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="propHost" ><![CDATA[%dw 2.0
+output application/java
+---
+message.attributes.uriParams.'targetSite' ++ ".http.host"]]></ee:set-variable>
+				<ee:set-variable variableName="propPath" ><![CDATA[%dw 2.0
+output application/java
+---
+message.attributes.uriParams.'targetSite' ++ ".http.path"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="Reading property value" doc:id="beb7f4fb-e037-437d-abef-4f8db79f0914" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="httpHost" ><![CDATA[%dw 2.0
+output application/java
+---
+p(vars.propHost)]]></ee:set-variable>
+				<ee:set-variable variableName="httpPath" ><![CDATA[%dw 2.0
+output application/java
+---
+p(vars.propPath)]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<try doc:name="Try" doc:id="bd542bfe-efde-478c-b3b4-c1719b070a26" >
+			<http:request method="GET" doc:name="Calling target site" doc:id="ed0c7f89-6961-4b54-adc1-d167b2c5fe8e" config-ref="HTTP_Request_configuration" path="#[vars.httpPath default '/']" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="1df966fd-adb5-4bea-b376-e3c532ddf844" >
+					<ee:transform doc:name="error payload" doc:id="9ef7a738-9da6-430d-9ed2-5d0df6cea615" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "Please configure this portal first"
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<logger level="INFO" doc:name="End Logger" doc:id="67bc734a-0789-45c2-a643-5f8eb9172c49" message="End Logger || Process completed"/>
+	</flow>
+</mule>
